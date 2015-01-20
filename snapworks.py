@@ -6,9 +6,7 @@ import urllib
 import hashlib
 import urllib2
 
-user_token = 'blablabla'
-access_token = 'blablabla'
-username = 'blablabla'
+username = 'qmaxquique'
 
 
 def list_terminals(user_token, access_token):
@@ -74,7 +72,27 @@ def get_usage(user_token, access_token):
     return output
 
 
+def get_credentials(utoken, atoken, credsfile):
+    if utoken == None and atoken == None:
+        try:
+            creds = json.load(open(credsfile, 'r'))
+            utoken = creds['user_token']
+            atoken = creds['access_token']
+        except:
+            print "Can't open credentials file. \n ", \
+                "You must provide a user token and a access token at least one time, or a valid credentials file"
+            exit(127)
+    elif (utoken != None and atoken == None) or (utoken == None and atoken != None):
+        print "--utoken AND --atoken parameters must be passed together"
+        exit(1)
+    else:
+        with open(credsfile, 'w') as file:
+            json.dump({'user_token': utoken, 'access_token': atoken}, file)
+    return utoken, atoken
+
+
 if __name__ == '__main__':
+    user_token, access_token = get_credentials(None, None, 'creds.json')
     action = sys.argv[1]
     if action == 'list':
         list_of_terminals = list_terminals(user_token, access_token)
