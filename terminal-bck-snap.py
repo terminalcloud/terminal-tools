@@ -150,7 +150,7 @@ if __name__ == '__main__':
                         help="Unique backup job name [could be daily, weekly, monthly... etc]")
     parser.add_argument("-u", "--utoken", type=str, help="User Token")
     parser.add_argument("-a", "--atoken", type=str, help="Access Token")
-    parser.add_argument("-c", "--credsfile", type=str, default="creds.json",
+    parser.add_argument("-c", "--credsfile", type=str, default="~/.creds.json",
                         help="Credentials Json file [creds.json by default]")
     parser.add_argument("-d", "--delete", type=int, default=3,
                         help="Deletion threshold. How many terminals need to keep before delete [3 by default]")
@@ -160,7 +160,8 @@ if __name__ == '__main__':
                         help="Cache file [default: /var/cache/terminal_backups/subdomain-job_name-snapshots.cache]")
     args = parser.parse_args()
 
-    user_token, access_token = get_credentials(args.utoken, args.atoken, args.credsfile)
+    credsfile = os.path.expanduser(args.credsfile)
+    user_token, access_token = get_credentials(args.utoken, args.atoken, credsfile)
 
     if args.log:
         logfile = args.log
