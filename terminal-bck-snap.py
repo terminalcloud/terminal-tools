@@ -94,13 +94,14 @@ def snapshot_terminal(container_key, user_token, access_token, title, body, read
         output = json.loads(urllib2.urlopen('https://www.terminal.com/api/v0.1/request_progress',
                                             urllib.urlencode({'request_id': request_id, })).read())
         time.sleep(1)
+    time.sleep(5)
     return output
 
 
 def initialize_logger(log_file):
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
-    debug_handler = logging.FileHandler('log_file')
+    debug_handler = logging.FileHandler(log_file)
     console_handler = logging.StreamHandler(sys.stdout)
     debug_handler.setLevel(logging.DEBUG)
     console_handler.setLevel(logging.INFO)
@@ -118,28 +119,35 @@ def cleanup(user_token, access_token, delete_threshold, cache_file):
     with open(cache_file) as cache:
         del_list = [next(cache) for x in xrange(head_num)]
     for snapshot_id in range(len(del_list)):
-        logger.info("Deleting snapshot %s" % snapshot_id)
+        logger.info("Deleting snapshot %s" % del_list[snapshot_id])
         delete_snapshot(user_token, access_token, snapshot_id)
+    if (len(del_list) > 0):
+        with open(cache_file, 'r') as cache:
+            alldata = cache.read().splitlines(True)
+        with open(cache_file, 'w') as cache:
+            cache.writelines(alldata[(len(del_list)):])
 
 
 def backup(user_token, access_token, logger, subdomain, job_name, delete_threshold, cache_file):
-    logger.info('Starting %s %s backup snapshot' % subdomain, job_name)
-    container_key = get_terminal(user_token, access_token, subdomain)['container_key']
-    logger.debug('% container key: %s' % (subdomain, container_key))
+    logger.info('Starting %s %s backup snapshot' % (subdomain, job_name))
+    container_key = get_terminal(user_token, access_token, subdomain)['terminal']['container_key']
+    logger.debug('%s container key: %s' % (subdomain, container_key))
     snapshot_id = \
     snapshot_terminal(container_key, user_token, access_token, (subdomain + '-' + job_name), "backup snap",
-                      "backup snap", "backup")['snapshot_id']
+                      "backup snap", "backup")['result']
+    print snapshot_id
     logger.info('%s snapshoted in %s' % (subdomain, snapshot_id))
     with open(cache_file, "a") as cache:
         logger.debug('Writing to cache file %s, snapshot_id: %s' % (cache_file, snapshot_id))
-        cache.write(snapshot_id)
+        cache.write('%s \n' % snapshot_id)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("action", help="Desired action [list, backup]")
-    parser.add_argument("subdomain", help="Subdomain of the Terminal to be backed up")
-    parser.add_argument("job_name", type=str, help="Unique backup job name [could be daily, weekly, monthly... etc]")
+    parser.add_argument("-s", "--subdomain", help="Subdomain of the Terminal to be backed up")
+    parser.add_argument("-j", "--job_name", type=str,
+                        help="Unique backup job name [could be daily, weekly, monthly... etc]")
     parser.add_argument("-u", "--utoken", type=str, help="User Token")
     parser.add_argument("-a", "--atoken", type=str, help="Access Token")
     parser.add_argument("-c", "--credsfile", type=str, default="creds.json",
@@ -148,7 +156,7 @@ if __name__ == '__main__':
                         help="Deletion threshold. How many terminals need to keep before delete [3 by default]")
     parser.add_argument("-l", "--log", type=str,
                         help="Where to locate the log file [default /var/log/subdomain-job_name-snapshots.log]")
-    parser.add_argument("-d", "--cache_file", type=str,
+    parser.add_argument("-r", "--cache_file", type=str,
                         help="Cache file [default: /var/cache/terminal_backups/subdomain-job_name-snapshots.cache]")
     args = parser.parse_args()
 
