@@ -4,6 +4,7 @@ import urllib
 import urllib2
 import argparse
 
+
 def get_terminal_details(user_token, access_token, subdomain):
     output = json.loads(urllib2.urlopen('https://www.terminal.com/api/v0.1/get_terminal',
                                         urllib.urlencode({
@@ -44,32 +45,6 @@ def get_new_size(cpu_size, action):  # :rtype : dict
         return terminals[(cpu_index + 1)]['cpu'], terminals[(cpu_index + 1)]['ram']
     elif action == 'decrease':
         return terminals[(cpu_index - 1)]['cpu'], terminals[(cpu_index - 1)]['ram']
-
-
-def decide_cpu(subdomain, cpu_size, load_average, min_size=100, max_size=3200, low_margin=0.2, up_margin=0.7,
-               resolution='15m'):
-    print "load average for %s resolution: %s" % (resolution, load_average[resolution])
-    if cpu_size < max_size:
-        if load_average[resolution] > (cpu_size / 100 * up_margin):
-            print 'Load average is higher than expected: %s' % load_average['15min']
-            print "Upsizing"
-            cpu, ram = get_new_size(cpu_size, 'increase')
-            container_key = get_terminal_details(user_token, access_token, subdomain)['terminal']['container_key']
-            diskspace = get_terminal_details(user_token, access_token, subdomain)['terminal']['diskspace']
-            print set_terminal_size(user_token, access_token, container_key, cpu, ram, diskspace)
-        elif cpu_size > min_size:
-            if load_average[resolution] <= low_margin:
-                print "You're wasting computing power, downsizing"
-                cpu, ram = get_new_size(cpu_size, 'decrease')
-                container_key = get_terminal_details(user_token, access_token, subdomain)['terminal']['container_key']
-                diskspace = get_terminal_details(user_token, access_token, subdomain)['terminal']['diskspace']
-                print set_terminal_size(user_token, access_token, container_key, cpu, ram, diskspace)
-            else:
-                print "Optimus Prime"
-        else:
-            print "The size of the terminal is already the minimum. Downsize is not possible"
-    else:
-        print "The size of the terminal is already the maximum. Upsize is not possible"
 
 
 def get_credentials(utoken, atoken, credsfile):
@@ -118,7 +93,7 @@ if __name__ == '__main__':
                         help="Max size of your resultant instance (200 for medium, 400 for xlarge, 800 for 2xlarge...)")
     parser.add_argument('-U', '--utoken', type=str, default=None, help='Your Terminal.com user token.')
     parser.add_argument('-K', '--atoken', type=str, default=None, help='Your Terminal.com access token.')
-    parser.add_argument('-F', '--creds', type=str, default='creds.json', help='Your json credentials file.')
+    parser.add_argument('-F', '--creds', type=str, default='/etc/creds.json', help='Your json credentials file.')
     args = parser.parse_args()
 
     subdomain = args.subdomain
