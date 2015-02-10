@@ -89,7 +89,7 @@ if __name__ == '__main__':
                         help="The subdomain name of your terminal. This is your Terminal.com username plus a number")
     parser.add_argument('-m', '--minsize', type=int, default=50,
                         help="Min size of your resultant instance (25 for micro, 50 for mini, 100 for small...)")
-    parser.add_argument('-M', '--maxsize', type=int, default=800,
+    parser.add_argument('-M', '--maxsize', type=int, default=1600,
                         help="Max size of your resultant instance (200 for medium, 400 for xlarge, 800 for 2xlarge...)")
     parser.add_argument('-U', '--utoken', type=str, default=None, help='Your Terminal.com user token.')
     parser.add_argument('-K', '--atoken', type=str, default=None, help='Your Terminal.com access token.')
