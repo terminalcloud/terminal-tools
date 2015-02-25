@@ -5,7 +5,6 @@ import urllib
 import urllib2
 import argparse
 
-
 def get_credentials(utoken, atoken, credsfile):
     if utoken is None and atoken is None:
         try:
