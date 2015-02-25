@@ -298,7 +298,10 @@ def add_authorized_key_to_terminal(container_key, publicKey):
 def add_authorized_key_to_ssh_proxy(name, publicKey):
     call = 'add_authorized_key_to_ssh_proxy'
     params = {'name':name, 'publicKey':publicKey}
-    response = make_request(call, params)
+    try:
+        response = make_request(call, params)
+    except Exception, e:
+        return {'status':e}
     return response
 
 def del_authorized_key_from_ssh_proxy(name, fingerprint):
