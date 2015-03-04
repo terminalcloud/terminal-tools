@@ -103,7 +103,7 @@ if __name__ == '__main__':
     parser.add_argument("-a", "--atoken", type=str, default=None, help="Your access token")
     parser.add_argument("-c", "--creds", type=str, default='/etc/creds.json', help="A credentials json file")
     parser.add_argument("-x", "--script", type=str, default=None, help="A script file to be executed in the new Terminals")
-    parser.add_argument('-m', "--method", type=str, default='ssh', help="Ssh or startup script methods")
+    parser.add_argument('-m', "--method", type=str, default='ssh', help="\"ssh\" or \"startup\" script methods")
     parser.add_argument('-n', "--name", type=str, default='Scripted Terminal', help="The name of your Terminal")
     parser.add_argument('-k', "--ssh_key_file", type=str, default=None, help="Use your own ssh key instead of create a new one - Use your private key name")
     parser.description="Utility to start and setup Terminals"
