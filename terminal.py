@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import json
-import urllib
 import urllib2
 
 # Authentication
@@ -28,22 +27,27 @@ def setup_credentials(utoken, atoken, credsfile):
 
 # Manage Request
 def make_request(call, params=None, url=None, headers=None):
-    if url is None:
-        url = 'https://api.terminal.com/v0.2/%s' % call
-    if headers is None:
-        headers={'user-token': user_token,'access-token':access_token}
-    if params is None:
-        data = urllib.urlencode({})
-    else:
-        parsed_params={}
-        for key in params.keys():
-            if params[key] is not None:
-                parsed_params.update({key:params[key]})
-        data = urllib.urlencode(parsed_params)
-    req = urllib2.Request(url, data, headers)
-    response = urllib2.urlopen(req)
-    return response.read()
-
+    try:
+        if url is None:
+            url = 'https://api.terminal.com/v0.2/%s' % call
+        if headers is None:
+            headers={'user-token': user_token,'access-token':access_token, 'Content-Type':'application/json'}
+        if params is None:
+            data = json.dumps({})
+        else:
+            parsed_params={}
+            for key in params.keys():
+                if params[key] is not None:
+                    parsed_params.update({key:params[key]})
+            data = json.dumps(parsed_params)
+        req = urllib2.Request(url, data, headers)
+        response = urllib2.urlopen(req)
+        results = json.loads(response.read())
+        results.update({u'success':True})
+        map(str,results)
+        return results
+    except urllib2.HTTPError as e:
+        return json.loads(e.read())
 
 # Browse Snapshots and Users
 def get_snapshot(snapshot_id):
