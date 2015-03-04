@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+import urllib
 import urllib2
 
 # Authentication
@@ -26,7 +27,7 @@ def setup_credentials(utoken, atoken, credsfile):
 
 
 # Manage Request
-def make_request(call, params=None, url=None, headers=None):
+def make_request(call, params=None, url=None, headers=None, raw=False):
     try:
         if url is None:
             url = 'https://api.terminal.com/v0.2/%s' % call
@@ -39,7 +40,11 @@ def make_request(call, params=None, url=None, headers=None):
             for key in params.keys():
                 if params[key] is not None:
                     parsed_params.update({key:params[key]})
-            data = json.dumps(parsed_params)
+            if raw:
+                data = urllib.urlencode(parsed_params)
+                headers.pop('Content-Type')
+            else:
+                data = json.dumps(parsed_params)
         req = urllib2.Request(url, data, headers)
         response = urllib2.urlopen(req)
         results = json.loads(response.read())
