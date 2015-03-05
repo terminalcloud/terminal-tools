@@ -129,7 +129,7 @@ if __name__ == '__main__':
             time.sleep(1)
             if args.script is not None:
                 print "Sending Script"
-                send_script(terminals[i]['container_ip'], 'root', key_name ,script)
+                print send_script(terminals[i]['container_ip'], 'root', key_name ,script)
                 print "Running Script"
                 run_on_terminal(terminals[i]['container_ip'], 'root', key_name ,'/bin/bash /root/%s' % os.path.basename(args.script))
 
