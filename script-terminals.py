@@ -35,10 +35,10 @@ def start_snap(name, snapshot_id, size=None, script=None):
     container_ip = output['result']['container_ip']
     return container_key, container_ip, subdomain
 
-def run_on_terminal(cip, user, script):
+def run_on_terminal(cip, user, pemfile, script):
     try:
         p = subprocess.Popen(
-        ['ssh', '-q' ,'-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-i', 'pemfile',
+        ['ssh', '-q' ,'-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-i', pemfile,
          user + '@' + cip, script], 0, None,  None, None, None)
         p.wait()
         return p.returncode
@@ -75,6 +75,8 @@ def args_sanitizer(args):
     if args.method not in ('ssh, startup'):
         print "Error. Not a valid method. (use ssh or startup)"
         exit(1)
+    if args.ssh_key_file is None:
+        key_name = args.ssh_key_file
 
 
 if __name__ == '__main__':
@@ -115,6 +117,7 @@ if __name__ == '__main__':
     terminals=[]
     for i in range(args.quantity):
         name = '%s-%s' % (args.name,i)
+        print "Starting Terminal %s" % name
         container_key, container_ip, subdomain = start_snap(name, snapshot_id, args.size, script)
         terminals.append({'container_key':container_key, 'container_ip':container_ip, 'subdomain':subdomain, 'name':name})
     time.sleep(2) # Prevent race-condition issues
@@ -126,7 +129,7 @@ if __name__ == '__main__':
             time.sleep(1)
             if args.script is not None:
                 send_script(terminals[i]['container_ip'], 'root', script)
-                run_on_terminal(terminals[i]['container_ip'], 'root', '/bin/bash /root/%s' % os.path.basename(args.script))
+                run_on_terminal(terminals[i]['container_ip'], 'root', key_name ,'/bin/bash /root/%s' % os.path.basename(args.script))
 
     # Print results in json format
     print json.loads(terminals)
