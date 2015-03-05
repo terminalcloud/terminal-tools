@@ -2,6 +2,7 @@
 import os
 import json
 import time
+import socket
 import argparse
 import subprocess
 import terminal
@@ -138,17 +139,17 @@ if __name__ == '__main__':
                 run_on_terminal(terminals[i]['container_ip'], 'root', key_name ,'/bin/bash /root/%s' % os.path.basename(args.script))
 
     if args.ports is not None:
+        host_subdomain=socket.gethostname()
         ports=args.ports.split(',')
+        terminals.append(terminal.get_terminal(None,host_subdomain)['terminal'])
         for t in range(len(terminals)):
             container_key=terminals[t]['container_key']
-            allothers=terminals
-            current=allothers.pop(t)
             links=[]
-            for s in range(len(allothers)):
+            for s in range(len(terminals)):
                 for port in range(len(ports)):
-                    link={'port':port,'source':allothers[s]['subdomain']}
+                    link={'port':port,'source':terminals[s]['subdomain']}
                     links.append(link)
-            terminal.add_terminal_links('container_key',links)
+            terminal.add_terminal_links(container_key,links)
 
     # Print results in json format
     print json.dumps(terminals)
