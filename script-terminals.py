@@ -10,24 +10,6 @@ snapshot_id = '7067f369f7b76f0a3276beb561820a21c9b5204ab60fbd90524560db96d7cb38'
 key_name = 'tempkey'
 
 
-def get_credentials(utoken, atoken, credsfile='creds.json'):
-    if utoken is None and atoken is None:
-        try:
-            creds = json.load(open(credsfile, 'r'))
-            utoken = creds['user_token']
-            atoken = creds['access_token']
-        except:
-            print "Can't open credentials file. \n ", \
-                "You must provide a user token and a access token at least one time, or a valid credentials file"
-            exit(127)
-    elif (utoken is not None and atoken is None) or (utoken is None and atoken is not None):
-        print "--utoken AND --atoken parameters must be passed together"
-        exit(1)
-    else:
-        with open(credsfile, 'w') as cfile:
-            json.dump({'user_token': utoken, 'access_token': atoken}, cfile)
-    return utoken, atoken
-
 def generate_ssh_key(key_file):
     subprocess.call(['ssh-keygen','-f', key_file,'-P',''])
 
@@ -111,6 +93,7 @@ if __name__ == '__main__':
     parser.description="Utility to start and setup Terminals"
     args = parser.parse_args()
 
+    print args.creds
     terminal.setup_credentials(args.utoken, args.atoken, args.creds)
     args_sanitizer(args)
 
