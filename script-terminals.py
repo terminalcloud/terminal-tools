@@ -148,7 +148,7 @@ if __name__ == '__main__':
                 for port in range(len(ports)):
                     link={'port':port,'source':allothers[s]['subdomain']}
                     links.append(link)
-        terminal.add_terminal_links('container_key',links)
+            terminal.add_terminal_links('container_key',links)
 
     # Print results in json format
     print json.dumps(terminals)
