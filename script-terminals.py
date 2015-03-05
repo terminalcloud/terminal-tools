@@ -150,6 +150,6 @@ if __name__ == '__main__':
                     link={'port':port,'source':terminals[s]['subdomain']}
                     links.append(link)
             terminal.add_terminal_links(container_key,links)
-
+    terminals.pop()
     # Print results in json format
     print json.dumps(terminals)
