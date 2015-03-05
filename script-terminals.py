@@ -140,10 +140,9 @@ if __name__ == '__main__':
     if args.ports is not None:
         ports=args.ports.split(',')
         for t in range(len(terminals)):
-            print terminals[t]['container_key']
             container_key=terminals[t]['container_key']
             allothers=terminals
-            allothers.pop(t)
+            #allothers.pop(t)
             links=[]
             for s in range(len(allothers)):
                 for port in range(len(ports)):
