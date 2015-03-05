@@ -84,7 +84,7 @@ def args_sanitizer(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("quantity", type=int, help="How many nodes will have your deploy")
-    parser.add_argument('-b', "snapshot_id", type=str, default='7067f369f7b76f0a3276beb561820a21c9b5204ab60fbd90524560db96d7cb38'\
+    parser.add_argument('-b', "--snapshot_id", type=str, default='7067f369f7b76f0a3276beb561820a21c9b5204ab60fbd90524560db96d7cb38'\
                         , help="Base Snapshot ID. Default is Ubuntu")
     parser.add_argument("-s", "--size", type=str, default='medium', help="micro, mini, small, [medium], xlarge.. etc")
     parser.add_argument("-u", "--utoken", type=str, default=None ,help="Your user token")
