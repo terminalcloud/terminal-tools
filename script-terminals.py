@@ -55,10 +55,10 @@ def get_script(filename):
         print '(%s)' % e
         return None
 
-def send_script(cip, user, script, path=''):
+def send_script(cip, user, script, pemfile, path=''):
     try:
         p = subprocess.Popen(
-        ['scp', script ,'-q' ,'-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-i', 'pemfile',
+        ['scp', script ,'-q' ,'-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-i', pemfile,
          '%s@%s:%s' % (user,cip,path)], 0, None,  None, None, None)
         p.wait()
         return p.returncode
@@ -128,8 +128,8 @@ if __name__ == '__main__':
             terminal.add_authorized_key_to_terminal(terminals[i]['container_key'],publicKey)
             time.sleep(1)
             if args.script is not None:
-                send_script(terminals[i]['container_ip'], 'root', script)
+                send_script(terminals[i]['container_ip'], 'root', key_name ,script)
                 run_on_terminal(terminals[i]['container_ip'], 'root', key_name ,'/bin/bash /root/%s' % os.path.basename(args.script))
 
     # Print results in json format
-    print json.loads(terminals)
+    print json.dumps(terminals)
