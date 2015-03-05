@@ -10,7 +10,7 @@ snapshot_id = '7067f369f7b76f0a3276beb561820a21c9b5204ab60fbd90524560db96d7cb38'
 key_name = 'tempkey'
 
 
-def get_credentials(utoken, atoken, credsfile):
+def get_credentials(utoken, atoken, credsfile='creds.json'):
     if utoken is None and atoken is None:
         try:
             creds = json.load(open(credsfile, 'r'))
