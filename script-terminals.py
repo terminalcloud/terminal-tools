@@ -12,6 +12,7 @@ key_name = 'tempkey'
 
 def generate_ssh_key(key_file):
     subprocess.call(['ssh-keygen','-f', key_file,'-P',''])
+    os.chmod(key_file,'0600')
 
 def get_public_key(key_file):
     with open(key_file) as f:
