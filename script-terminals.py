@@ -110,9 +110,7 @@ if __name__ == '__main__':
     Use your private key name")
     parser.description="Utility to start and setup Terminals"
     args = parser.parse_args()
-    global user_token
-    global access_token
-    user_token, access_token=get_credentials(args.utoken, args.atoken, args.creds)
+    terminal.setup_credentials(get_credentials(args.utoken, args.atoken, args.creds),None)
     args_sanitizer(args)
 
     # Preparing
