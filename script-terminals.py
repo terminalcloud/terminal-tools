@@ -56,7 +56,7 @@ def get_script(filename):
         print '(%s)' % e
         return None
 
-def send_script(cip, user, script, pemfile):
+def send_script(cip, user, pemfile, script,):
     print (cip, user, script, pemfile)
     destination='%s@%s:' % (user,cip)
     try:
