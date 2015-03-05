@@ -147,9 +147,8 @@ if __name__ == '__main__':
             links=[]
             for s in range(len(terminals)):
                 for port in range(len(ports)):
-                    link={'port':port,'source':terminals[s]['subdomain']}
+                    link={'port':int(ports[port]),'source':terminals[s]['subdomain']}
                     links.append(link)
             terminal.add_terminal_links(container_key,links)
-    terminals.pop()
     # Print results in json format
     print json.dumps(terminals)
