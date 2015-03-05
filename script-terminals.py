@@ -96,6 +96,7 @@ if __name__ == '__main__':
     parser.add_argument('-n', "--name", type=str, default='Scripted Terminal', help="The name of your Terminal")
     parser.add_argument('-k', "--ssh_key_file", type=str, default=None, help="Use your own ssh key instead of create a new one - \
     Use your private key name")
+    parser.add_argument('-p', "--ports", type=str, default=None, help="List of open ports to open between Terminals, csv.")
     parser.description="Utility to start and setup Terminals"
     args = parser.parse_args()
 
@@ -135,6 +136,19 @@ if __name__ == '__main__':
                 send_script(terminals[i]['container_ip'], 'root', key_name ,args.script)
                 print "Running Script"
                 run_on_terminal(terminals[i]['container_ip'], 'root', key_name ,'/bin/bash /root/%s' % os.path.basename(args.script))
+
+    if args.ports is not None:
+        ports=args.ports.split(',')
+        for t in range(len(terminals)):
+            container_key=t[i]['container_key']
+            allothers=terminals
+            allothers.pop(t)
+            links=[]
+            for s in range(len(allothers)):
+                for port in range(len(ports)):
+                    link={'port':port,'source':allothers[s]['subdomain']}
+                    links.append(link)
+        terminal.add_terminal_links('container_key',links)
 
     # Print results in json format
     print json.dumps(terminals)
