@@ -141,6 +141,7 @@ if __name__ == '__main__':
         ports=args.ports.split(',')
         for t in range(len(terminals)):
             print t
+            print terminal
             container_key=terminals[t]['container_key']
             allothers=terminals
             allothers.pop(t)
