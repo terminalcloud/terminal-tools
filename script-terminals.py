@@ -80,14 +80,14 @@ def args_sanitizer(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("quantity", type=int, help="How many nodes will have your deploy")
-    parser.add_argument("-s", "--size", type=str, default='medium', help="micro, mini, small, medium, xlarge.. etc")
+    parser.add_argument("-s", "--size", type=str, default='medium', help="micro, mini, small, [medium], xlarge.. etc")
     parser.add_argument("-u", "--utoken", type=str, default=None ,help="Your user token")
     parser.add_argument("-a", "--atoken", type=str, default=None, help="Your access token")
     parser.add_argument("-c", "--creds", type=str, default='/etc/creds.json', help="A credentials json file")
     parser.add_argument("-x", "--script", type=str, default=None, help="A script file to be executed in the new Terminals. \n\
     With ssh method you can also use a binary executable. \n\
     If a script is not provided, the terminals will be created and ssh keys installed on them.")
-    parser.add_argument('-m', "--method", type=str, default='ssh', help="\"ssh\" or \"startup\" script methods")
+    parser.add_argument('-m', "--method", type=str, default='ssh', help="[ssh] or startup script methods")
     parser.add_argument('-n', "--name", type=str, default='Scripted Terminal', help="The name of your Terminal")
     parser.add_argument('-k', "--ssh_key_file", type=str, default=None, help="Use your own ssh key instead of create a new one - \
     Use your private key name")
@@ -126,7 +126,7 @@ if __name__ == '__main__':
             time.sleep(1)
             if args.script is not None:
                 send_script(terminals[i]['container_ip'], 'root', script)
-                run_on_terminal(terminals[i]['container_ip'], 'user', '/bin/bash /root/%s' % os.path.basename(script))
+                run_on_terminal(terminals[i]['container_ip'], 'root', '/bin/bash /root/%s' % os.path.basename(args.script))
 
     # Print results in json format
     print json.loads(terminals)
