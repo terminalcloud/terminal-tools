@@ -58,8 +58,8 @@ def get_script(filename):
 def send_script(cip, user, script, pemfile, path=''):
     try:
         p = subprocess.Popen(
-        ['scp', script ,'-q' ,'-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-i', pemfile,
-         '%s@%s:%s' % (user,cip,path)], 0, None,  None, None, None)
+        ['scp', '-q' ,'-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-i', pemfile,
+         script, '%s@%s:%s' % (user,cip,path)], 0, None,  None, None, None)
         p.wait()
         return p.returncode
     except Exception, e:
