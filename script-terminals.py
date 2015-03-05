@@ -142,7 +142,7 @@ if __name__ == '__main__':
         for t in range(len(terminals)):
             container_key=terminals[t]['container_key']
             allothers=terminals
-            #allothers.pop(t)
+            current=allothers.pop(t)
             links=[]
             for s in range(len(allothers)):
                 for port in range(len(ports)):
