@@ -106,7 +106,7 @@ if __name__ == '__main__':
     With ssh method you can also use a binary executable")
     parser.add_argument('-m', "--method", type=str, default='ssh', help="\"ssh\" or \"startup\" script methods")
     parser.add_argument('-n', "--name", type=str, default='Scripted Terminal', help="The name of your Terminal")
-    parser.add_argument('-k', "--ssh_key_file", type=str, default=None, help="Use your own ssh key instead of create a new one - \
+    parser.add_argument('-k', "--ssh_key_file", type=str, default='/etc/creds.json', help="Use your own ssh key instead of create a new one - \
     Use your private key name")
     parser.description="Utility to start and setup Terminals"
     args = parser.parse_args()
