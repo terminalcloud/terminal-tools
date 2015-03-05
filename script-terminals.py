@@ -152,4 +152,5 @@ if __name__ == '__main__':
                     links.append(link)
             terminal.add_terminal_links(container_key,links)
     # Print results in json format
+    host=terminals.pop()
     print json.dumps(terminals)
