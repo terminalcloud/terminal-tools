@@ -5,7 +5,7 @@ import time
 import socket
 import argparse
 import subprocess
-import terminal
+from terminalcloud import terminal
 
 key_name = 'tempkey'
 
