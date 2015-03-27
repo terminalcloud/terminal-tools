@@ -220,7 +220,6 @@ if __name__ == '__main__':
         else:
             script = None
 
-
     if args.method == 'ssh' or args.method == 'startup_key':
         if args.ssh_key_file is None:
             generate_ssh_key(key_name)
@@ -228,15 +227,11 @@ if __name__ == '__main__':
             key_name=args.ssh_key_file
         publicKey=get_public_key('%s.pub' % key_name)
 
-
     # Creating Terminals
     if args.threading == 'multi':
         terminals = multi_thread()
     else:
         terminals = single_thread()
-
-
-    time.sleep(1) # Prevent race-condition issues
 
     # Print results in json format
     host=terminals.pop()
