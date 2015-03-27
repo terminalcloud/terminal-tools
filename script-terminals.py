@@ -7,7 +7,7 @@ import argparse
 import subprocess
 from terminalcloud import terminal
 
-key_name = 'tempkey'
+key_name = '.ssh/id_rsa'
 
 def generate_ssh_key(key_file):
     subprocess.call(['ssh-keygen','-f', key_file,'-P',''])
@@ -74,8 +74,8 @@ def args_sanitizer(args):
     if (int(args.quantity) < 1 or int(args.quantity) > 100):
         print "Error. Terminal amount out of bounds ( should be in between 1 and 100 )"
         exit(1)
-    if args.method not in ('ssh, startup'):
-        print "Error. Not a valid method. (use ssh or startup)"
+    if args.method not in ('ssh, startup, startup_key'):
+        print "Error. Not a valid method. use: [ssh], startup or startup_key"
         exit(1)
     if args.ssh_key_file is None:
         key_name = args.ssh_key_file
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument("-x", "--script", type=str, default=None, help="A script file to be executed in the new Terminals. \n\
     With ssh method you can also use a binary executable. \n\
     If a script is not provided, the terminals will be created and ssh keys installed on them.")
-    parser.add_argument('-m', "--method", type=str, default='ssh', help="[ssh] or startup script methods")
+    parser.add_argument('-m', "--method", type=str, default='ssh', help="[ssh], startup or startup_key")
     parser.add_argument('-n', "--name", type=str, default='Scripted Terminal', help="The name of your Terminal")
     parser.add_argument('-k', "--ssh_key_file", type=str, default=None, help="Use your own ssh key instead of create a new one - \
     Use your private key name")
@@ -106,7 +106,8 @@ if __name__ == '__main__':
 
     # Preparing
     snapshot_id=args.snapshot_id
-    if args.method == 'ssh':
+
+    if args.method == 'ssh' or args.method == 'startup_key':
         if args.ssh_key_file is None:
             generate_ssh_key(key_name)
         else:
@@ -126,7 +127,7 @@ if __name__ == '__main__':
         print "Starting Terminal %s" % name
         container_key, container_ip, subdomain = start_snap(name, snapshot_id, args.size, script)
         terminals.append({'container_key':container_key, 'container_ip':container_ip, 'subdomain':subdomain, 'name':name})
-    time.sleep(2) # Prevent race-condition issues
+    time.sleep(1) # Prevent race-condition issues
 
     # Installing stuff by ssh method
     if args.method == 'ssh':
@@ -138,6 +139,10 @@ if __name__ == '__main__':
                 send_script(terminals[i]['container_ip'], 'root', key_name ,args.script)
                 print "Running Script"
                 run_on_terminal(terminals[i]['container_ip'], 'root', key_name ,'/bin/bash /root/%s' % os.path.basename(args.script))
+    elif args.method == 'startup_key':
+        for i in range(len(terminals)):
+            terminal.add_authorized_key_to_terminal(terminals[i]['container_key'],publicKey)
+            time.sleep(1)
 
     if args.ports is not None:
         host_subdomain=socket.gethostname()
