@@ -5,9 +5,10 @@ import time
 import socket
 import argparse
 import subprocess
+import threading
 from terminalcloud import terminal
 
-key_name = '.ssh/id_rsa'
+key_name = '/root/.ssh/id_rsa'
 
 def generate_ssh_key(key_file):
     subprocess.call(['ssh-keygen','-f', key_file,'-P',''])
@@ -21,18 +22,39 @@ def get_public_key(key_file):
 def start_snap(name, snapshot_id, size=None, script=None):
     output = terminal.start_snapshot(snapshot_id, size, None, name, None, script)
     request_id = output['request_id']
+    time.sleep(5)
     output = terminal.request_progress(request_id)
-    state = 'None'
-    time.sleep(1)
-    while output['status'] != 'success':
+    try:
+        if output['status'] != 'success':
+            time.sleep(1)
+    except:
+        time.sleep(5)
         output = terminal.request_progress(request_id)
-        if output['state'] != state:
-            state = output['state']
-            print('(%s)' % state)
-        time.sleep(1)
-    container_key = output['result']['container_key']
-    subdomain = output['result']['subdomain']
-    container_ip = output['result']['container_ip']
+
+    state = 'None'
+    while output['status'] != 'success':
+        try:
+            output = terminal.request_progress(request_id)
+            if output['state'] != state:
+                state = output['state']
+                print('%s - (%s)' % (name, state))
+        except:
+            print "Retrying %s" % name
+            time.sleep(3)
+            output = terminal.request_progress(request_id)
+    time.sleep(2)
+    done = False
+    while done is False:
+        try:
+            output = terminal.request_progress(request_id)
+            container_key = output['result']['container_key']
+            subdomain = output['result']['subdomain']
+            container_ip = output['result']['container_ip']
+            done = True
+        except:
+            print "Retrying %s" % name
+            time.sleep(1)
+            done = False
     return container_key, container_ip, subdomain
 
 def run_on_terminal(cip, user, pemfile, script):
@@ -80,6 +102,87 @@ def args_sanitizer(args):
     if args.ssh_key_file is None:
         key_name = args.ssh_key_file
 
+def worker(name):
+    container_key, container_ip, subdomain = start_snap(name, snapshot_id, args.size, script)
+    terms.append({'container_key':container_key, 'container_ip':container_ip, 'subdomain':subdomain, 'name':name})
+    time.sleep(2)
+    terminal.add_authorized_key_to_terminal(container_key,publicKey)
+    if args.method == 'ssh' and args.script is not None:
+        print 'Sending Script'
+        send_script(container_ip, 'root', key_name, args.script)
+        print 'Running Script'
+        run_on_terminal(container_ip, 'root', key_name, '/bin/bash /root/%s' % os.path.basename(args.script))
+
+def single_thread():
+    terms = []
+    for i in range(args.quantity):
+        name = '%s-%s' % (args.name,i)
+        print "Starting Terminal %s" % name
+        container_key, container_ip, subdomain = start_snap(name, snapshot_id, args.size, script)
+        terms.append({'container_key':container_key, 'container_ip':container_ip, 'subdomain':subdomain, 'name':name})
+    time.sleep(1) # Prevent race-condition issues
+
+    # Installing stuff by ssh method
+    if args.method == 'ssh':
+        for i in range(len(terms)):
+            terminal.add_authorized_key_to_terminal(terms[i]['container_key'],publicKey)
+            time.sleep(1)
+            if args.script is not None:
+                print "Sending Script"
+                send_script(terms[i]['container_ip'], 'root', key_name ,args.script)
+                print "Running Script"
+                run_on_terminal(terms[i]['container_ip'], 'root', key_name ,'/bin/bash /root/%s' % os.path.basename(args.script))
+    elif args.method == 'startup_key':
+        for i in range(len(terms)):
+            terminal.add_authorized_key_to_terminal(terms[i]['container_key'],publicKey)
+            time.sleep(1)
+
+    if args.ports is not None:
+        host_subdomain=socket.gethostname()
+        ports=args.ports.split(',')
+        terms.append(terminal.get_terminal(None,host_subdomain)['terminal'])
+        for t in range(len(terms)):
+            container_key=terms[t]['container_key']
+            links=[]
+            for s in range(len(terms)):
+                for port in range(len(ports)):
+                    link={'port':(ports[port]),'source':terms[s]['subdomain']}
+                    links.append(link)
+            terminal.add_terminal_links(container_key,links)
+    return terms
+
+def multi_thread():
+    global terms
+    terms =[]
+    threads=[]
+
+    for i in range(args.quantity):
+        name = '%s-%s' % (args.name,i)
+        t = threading.Thread(target=worker, args=(name,), name=name)
+        threads.append(t)
+        t.setDaemon(True)
+        print 'Initializying %s' % name
+        t.start()
+
+    for th in range(len(threads)):
+        while threads[th].is_alive():
+            time.sleep(1)
+
+    time.sleep(2)
+    if args.ports is not None:
+        host_subdomain=socket.gethostname()
+        ports=args.ports.split(',')
+        terms.append(terminal.get_terminal(None,host_subdomain)['terminal'])
+        for t in range(len(terms)):
+            container_key=terms[t]['container_key']
+            links=[]
+            for s in range(len(terms)):
+                for port in range(len(ports)):
+                    link={'port':str(ports[port]),'source':terms[s]['subdomain']}
+                    links.append(link)
+            terminal.add_terminal_links(container_key,links)
+    return terms
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -98,6 +201,8 @@ if __name__ == '__main__':
     parser.add_argument('-k', "--ssh_key_file", type=str, default=None, help="Use your own ssh key instead of create a new one - \
     Use your private key name")
     parser.add_argument('-p', "--ports", type=str, default=None, help="List of open ports to open between Terminals, csv.")
+    parser.add_argument('-t', "--threading", type=str, default='single', help="[single] or multi - Multithreading is quick but \
+    requires non-interactive scripts")
     parser.description="Utility to start and setup Terminals"
     args = parser.parse_args()
 
@@ -107,55 +212,32 @@ if __name__ == '__main__':
     # Preparing
     snapshot_id=args.snapshot_id
 
+    if args.method == 'ssh':
+        script = None
+    else:
+        if args.script is not None:
+            script = get_script(args.script)
+        else:
+            script = None
+
+
     if args.method == 'ssh' or args.method == 'startup_key':
         if args.ssh_key_file is None:
             generate_ssh_key(key_name)
         else:
             key_name=args.ssh_key_file
         publicKey=get_public_key('%s.pub' % key_name)
-        script=None
-    else:
-        if args.script is not None:
-            script=get_script(args.script)
-        else:
-            script=None
 
-    # Creating terminals
-    terminals=[]
-    for i in range(args.quantity):
-        name = '%s-%s' % (args.name,i)
-        print "Starting Terminal %s" % name
-        container_key, container_ip, subdomain = start_snap(name, snapshot_id, args.size, script)
-        terminals.append({'container_key':container_key, 'container_ip':container_ip, 'subdomain':subdomain, 'name':name})
+
+    # Creating Terminals
+    if args.threading == 'multi':
+        terminals = multi_thread()
+    else:
+        terminals = single_thread()
+
+
     time.sleep(1) # Prevent race-condition issues
 
-    # Installing stuff by ssh method
-    if args.method == 'ssh':
-        for i in range(len(terminals)):
-            terminal.add_authorized_key_to_terminal(terminals[i]['container_key'],publicKey)
-            time.sleep(1)
-            if args.script is not None:
-                print "Sending Script"
-                send_script(terminals[i]['container_ip'], 'root', key_name ,args.script)
-                print "Running Script"
-                run_on_terminal(terminals[i]['container_ip'], 'root', key_name ,'/bin/bash /root/%s' % os.path.basename(args.script))
-    elif args.method == 'startup_key':
-        for i in range(len(terminals)):
-            terminal.add_authorized_key_to_terminal(terminals[i]['container_key'],publicKey)
-            time.sleep(1)
-
-    if args.ports is not None:
-        host_subdomain=socket.gethostname()
-        ports=args.ports.split(',')
-        terminals.append(terminal.get_terminal(None,host_subdomain)['terminal'])
-        for t in range(len(terminals)):
-            container_key=terminals[t]['container_key']
-            links=[]
-            for s in range(len(terminals)):
-                for port in range(len(ports)):
-                    link={'port':int(ports[port]),'source':terminals[s]['subdomain']}
-                    links.append(link)
-            terminal.add_terminal_links(container_key,links)
     # Print results in json format
     host=terminals.pop()
     print json.dumps(terminals)
