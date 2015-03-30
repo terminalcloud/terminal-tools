@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 import os
 import sys
-import json
 import time
 import errno
-import urllib
-import urllib2
 import logging
 import argparse
+from terminalcloud import terminal
 
 
 def mkdir_p(path):
@@ -20,81 +18,14 @@ def mkdir_p(path):
             raise
 
 
-def get_credentials(utoken, atoken, credsfile):
-    if utoken is None and atoken is None:
-        try:
-            creds = json.load(open(credsfile, 'r'))
-            utoken = creds['user_token']
-            atoken = creds['access_token']
-        except:
-            print "Can't open credentials file. \n ", \
-                "You must provide a user token and a access token at least one time, or a valid credentials file"
-            exit(127)
-    elif (utoken is not None and atoken is None) or (utoken is None and atoken is not None):
-        print "--utoken AND --atoken parameters must be passed together"
-        exit(1)
-    else:
-        with open(credsfile, 'w') as cfile:
-            json.dump({'user_token': utoken, 'access_token': atoken}, cfile)
-    return utoken, atoken
-
-
-def list_terminals(user_token, access_token):
-    output = json.loads(urllib2.urlopen('https://www.terminal.com/api/v0.1/list_terminals',
-                                        urllib.urlencode({
-                                            'user_token': user_token,
-                                            'access_token': access_token,
-                                        })).read())
-    return output
-
-
-def get_terminal(user_token, access_token, subdomain):
-    output = json.loads(urllib2.urlopen('https://www.terminal.com/api/v0.1/get_terminal',
-                                        urllib.urlencode({
-                                            'user_token': user_token,
-                                            'access_token': access_token,
-                                            'subdomain': subdomain,
-                                        })).read())
-    return output
-
-
-def print_terminals(list_of_terminals):
-    for i in range(len(list_of_terminals['terminals'])):
-        terminal_name = list_of_terminals['terminals'][i]['name']
-        terminal_key = list_of_terminals['terminals'][i]['container_key']
-        terminal_status = list_of_terminals['terminals'][i]['status']
-        print terminal_name, ' - ', terminal_key, '-', terminal_status
-
-
-def delete_snapshot(snapshot_id, user_token, access_token):
-    output = json.loads(urllib2.urlopen('https://www.terminal.com/api/v0.1/delete_snapshot',
-                                        urllib.urlencode({
-                                            'container_key': snapshot_id,
-                                            'user_token': user_token,
-                                            'snapshot_id': access_token,
-                                        })).read())
-    return output
-
-
-def snapshot_terminal(container_key, user_token, access_token, title, body, readme, tags):
-    output = json.loads(urllib2.urlopen('https://www.terminal.com/api/v0.1/snapshot_terminal',
-                                        urllib.urlencode({
-                                            'container_key': container_key,
-                                            'user_token': user_token,
-                                            'access_token': access_token,
-                                            'title': title,
-                                            'body': body,
-                                            'readme': readme,
-                                            'tags': tags,
-                                            'public': False,
-                                        })).read())
+def snapshot_terminal(container_key, title, body, readme, tags):
+    output = terminal.snapshot_terminal(container_key,body,title,readme,tags)
     request_id = output['request_id']
-
-    while output.get('status') != 'success':
-        output = json.loads(urllib2.urlopen('https://www.terminal.com/api/v0.1/request_progress',
-                                            urllib.urlencode({'request_id': request_id, })).read())
-        time.sleep(1)
-    time.sleep(5)
+    time.sleep(1)
+    output = terminal.request_progress(request_id)
+    while output['status'] != 'success':
+        time.sleep(3)
+        terminal.request_progress(request_id)
     return output
 
 
@@ -120,7 +51,7 @@ def cleanup(user_token, access_token, delete_threshold, cache_file):
         del_list = [next(cache) for x in xrange(head_num)]
     for snapshot_id in range(len(del_list)):
         logger.info("Deleting snapshot %s" % del_list[snapshot_id])
-        delete_snapshot(user_token, access_token, snapshot_id)
+        terminal.delete_snapshot(snapshot_id)
     if (len(del_list) > 0):
         with open(cache_file, 'r') as cache:
             alldata = cache.read().splitlines(True)
@@ -130,12 +61,10 @@ def cleanup(user_token, access_token, delete_threshold, cache_file):
 
 def backup(user_token, access_token, logger, subdomain, job_name, delete_threshold, cache_file):
     logger.info('Starting %s %s backup snapshot' % (subdomain, job_name))
-    container_key = get_terminal(user_token, access_token, subdomain)['terminal']['container_key']
+    container_key = terminal.get_terminal(subdomain)['terminal']['container_key']
     logger.debug('%s container key: %s' % (subdomain, container_key))
     snapshot_id = \
-    snapshot_terminal(container_key, user_token, access_token, (subdomain + '-' + job_name), "backup snap",
-                      "backup snap", "backup")['result']
-    print snapshot_id
+    snapshot_terminal(container_key,(subdomain + '-' + job_name), "backup snap","backup snap", "backup")['result']
     logger.info('%s snapshoted in %s' % (subdomain, snapshot_id))
     with open(cache_file, "a") as cache:
         logger.debug('Writing to cache file %s, snapshot_id: %s' % (cache_file, snapshot_id))
@@ -161,7 +90,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     credsfile = os.path.expanduser(args.credsfile)
-    user_token, access_token = get_credentials(args.utoken, args.atoken, credsfile)
+    user_token, access_token = terminal.setup_credentials(args.utoken, args.atoken, credsfile)
 
     if args.log:
         logfile = args.log
@@ -177,7 +106,9 @@ if __name__ == '__main__':
     logger = initialize_logger(logfile)
 
     if (args.action == "list"):
-        print_terminals(list_terminals(user_token, access_token))
+        raw_list = terminal.list_terminals()['terminals']
+        for term in range(len(raw_list)):
+            print '%s|%s|%s' % (raw_list[term]['name'], raw_list[term]['container_key'], raw_list[term]['status'])
     elif (args.action == "backup"):
         backup(user_token, access_token, logger, args.subdomain, args.job_name, args.delete, cache_file)
         cleanup(user_token, access_token, args.delete, cache_file)
