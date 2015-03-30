@@ -2,6 +2,7 @@
 import os
 import json
 import time
+import signal
 import socket
 import argparse
 import subprocess
@@ -9,6 +10,21 @@ import threading
 from terminalcloud import terminal
 
 key_name = '/root/.ssh/id_rsa'
+
+class timeout:
+    def __init__(self, seconds=1, error_message='Timeout'):
+        self.seconds = seconds
+        self.error_message = error_message
+
+    def handle_timeout(self, signum, frame):
+        print self.error_message
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)
 
 def generate_ssh_key(key_file):
     subprocess.call(['ssh-keygen','-f', key_file,'-P',''])
@@ -21,28 +37,27 @@ def get_public_key(key_file):
 
 def start_snap(name, snapshot_id, size=None, script=None):
     output = terminal.start_snapshot(snapshot_id, size, None, name, None, script)
+    time.sleep(int(int(args.quantity) * 0.04) + 1)
     request_id = output['request_id']
-    time.sleep(5)
     output = terminal.request_progress(request_id)
     try:
         if output['status'] != 'success':
-            time.sleep(1)
+            pass
     except:
-        time.sleep(5)
+        time.sleep(int(int(args.quantity) * 0.03) + 1)
         output = terminal.request_progress(request_id)
 
     state = 'None'
     while output['status'] != 'success':
         try:
+            time.sleep(int(args.quantity) * 0.03 + 1)
             output = terminal.request_progress(request_id)
             if output['state'] != state:
                 state = output['state']
                 print('%s - (%s)' % (name, state))
         except:
             print "Retrying %s" % name
-            time.sleep(3)
-            output = terminal.request_progress(request_id)
-    time.sleep(2)
+            time.sleep(int(args.quantity * 0.02) + 2)
     done = False
     while done is False:
         try:
@@ -53,7 +68,7 @@ def start_snap(name, snapshot_id, size=None, script=None):
             done = True
         except:
             print "Retrying %s" % name
-            time.sleep(1)
+            time.sleep(int(int(args.quantity) * 0.02) + 1)
             done = False
     return container_key, container_ip, subdomain
 
@@ -93,7 +108,7 @@ def args_sanitizer(args):
     if args.size not in terminal.instance_types()['instance_types']:
         print "Error. Wrong instance type"
         exit(1)
-    if (int(args.quantity) < 1 or int(args.quantity) > 100):
+    if (int(args.quantity) < 1 or int(args.quantity) > 250):
         print "Error. Terminal amount out of bounds ( should be in between 1 and 100 )"
         exit(1)
     if args.method not in ('ssh, startup, startup_key'):
@@ -102,7 +117,7 @@ def args_sanitizer(args):
     if args.ssh_key_file is None:
         key_name = args.ssh_key_file
 
-def worker(name):
+def start_terminal_worker(name):
     container_key, container_ip, subdomain = start_snap(name, snapshot_id, args.size, script)
     terms.append({'container_key':container_key, 'container_ip':container_ip, 'subdomain':subdomain, 'name':name})
     time.sleep(2)
@@ -112,6 +127,12 @@ def worker(name):
         send_script(container_ip, 'root', key_name, args.script)
         print 'Running Script'
         run_on_terminal(container_ip, 'root', key_name, '/bin/bash /root/%s' % os.path.basename(args.script))
+
+def add_terminal_links_worker(container_key,links):
+    output = terminal.add_terminal_links(container_key,links)
+    print output
+    return output
+
 
 def single_thread():
     terms = []
@@ -158,29 +179,41 @@ def multi_thread():
 
     for i in range(args.quantity):
         name = '%s-%s' % (args.name,i)
-        t = threading.Thread(target=worker, args=(name,), name=name)
+        t = threading.Thread(target=start_terminal_worker, args=(name,), name=name)
         threads.append(t)
         t.setDaemon(True)
         print 'Initializying %s' % name
+        if i%3 == 0:
+            time.sleep(int(int(args.quantity) * 0.04) + 1)
         t.start()
 
     for th in range(len(threads)):
         while threads[th].is_alive():
             time.sleep(1)
 
-    time.sleep(2)
     if args.ports is not None:
+        threads=[]
         host_subdomain=socket.gethostname()
         ports=args.ports.split(',')
         terms.append(terminal.get_terminal(None,host_subdomain)['terminal'])
-        for t in range(len(terms)):
-            container_key=terms[t]['container_key']
+        for term in range(len(terms)):
+            container_key=terms[term]['container_key']
             links=[]
             for s in range(len(terms)):
                 for port in range(len(ports)):
                     link={'port':str(ports[port]),'source':terms[s]['subdomain']}
                     links.append(link)
-            terminal.add_terminal_links(container_key,links)
+            t = threading.Thread(target=add_terminal_links_worker, args=(container_key,links), name=terms[term]['subdomain'])
+            threads.append(t)
+            t.setDaemon(True)
+            if (term + 1)%8 == 0:
+                time.sleep(int(int(len(terms)) * 0.02) + 1)
+            print '%s -  Configuring links' % t.name
+            t.start()
+
+        for th in range(len(threads)):
+            while threads[th].is_alive():
+                time.sleep(1)
     return terms
 
 
