@@ -48,8 +48,10 @@ def get_dockerfile_details(user, repo):
                  'ENV': envs,
                  'VOL': volumes,
                  'PORTS': ports}
-        output['CMD'] = json.loads(cmds[0])
-        print cmds
+        try:
+            output['CMD'] = json.loads(cmds[0])
+        except:
+            output['CMD'] = cmds
         output['WDIR'] = wdir[0] if wdir != [] else None
         output['ENTRYPOINT'] = re.sub('["\[\]]','',entrypoint[0]) if entrypoint != [] else None
         output['MAINTAINER'] = maintainer[0] if maintainer != [] else None
@@ -77,10 +79,13 @@ def get_customdockerfile_details(filename):
         entrypoint = [a[1] for a in re.findall(r'\n(ENTRYPOINT|entrypoint)\s+(.*)', dockerfile)]
         output = {'FROM': f,
                   'lines': lines,
-                 'CMD': cmds,
                  'ENV': envs,
                  'VOL': volumes,
                  'PORTS': ports}
+        try:
+            output['CMD'] = json.loads(cmds[0])
+        except:
+            output['CMD'] = cmds
         output['WDIR'] = wdir[0] if wdir != [] else None
         output['ENTRYPOINT'] = re.sub('["\[\]]','',entrypoint[0]) if entrypoint != [] else None
         output['MAINTAINER'] = maintainer[0] if maintainer != [] else None
@@ -180,14 +185,15 @@ def get_user(parsed, custom_user):
         return custom_user
 
 def get_envs(parsed):
-    envs = parsed['ENV']
     exports = ''
-    for env in envs:
-      e, val = re.split('\s+', env, 1)
-      exports += 'export %s=\"%s\"; ' % (e, val)
+    envs = parsed['ENV']
+    if envs is not None:
+        for env in envs:
+          e, val = re.split('\s+', env, 1)
+          exports += 'export %s=\"%s\"; ' % (e, val)
     return exports
 
-def make_startup_script(rootdir, runscript, comms):
+def make_startup_script(runscript, comms):
     if os.path.exists(runscript):
         print 'Docker startup script ' + runscript + 'already exists - Overwriting'
     try:
@@ -197,7 +203,7 @@ def make_startup_script(rootdir, runscript, comms):
             f.write('\n')
             f.close()
     except Exception, e:
-        exit('ERROR: Cannot write startup script'% e)
+        exit('ERROR: Cannot write %s script (%s)'% (runscript,e))
 
 
 if __name__ == "__main__":
@@ -219,11 +225,13 @@ if __name__ == "__main__":
     runscript = '/run.sh'
     user = get_user(parsed_dockerfile,args['user'])
     script_array = get_startup_commands(parsed_dockerfile, args, defaults)
+    print script_array
     pullimage(image['image'],rootdir)
-    make_startup_script(rootdir, runscript, script_array)
+
 
     os.chroot(rootdir)
-    cmdchain = ['su'] + ['-l'] + [parsed_dockerfile['USER']] + ['-c'] + [runscript]
+    cmdchain = ['su'] + ['-l'] + [user] + ['-c'] + [runscript]
+    make_startup_script(runscript, script_array)
     print cmdchain
     print 'Your application is running in ports: "%s" ' % parsed_dockerfile['PORTS']
     subprocess.call(cmdchain)
