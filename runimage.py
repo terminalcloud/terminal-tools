@@ -202,6 +202,7 @@ def make_startup_script(runscript, comms):
                 f.write(line)
             f.write('\n')
             f.close()
+        os.chmod(runscript, 755)
     except Exception, e:
         exit('ERROR: Cannot write %s script (%s)'% (runscript,e))
 
@@ -225,10 +226,8 @@ if __name__ == "__main__":
     runscript = '/run.sh'
     user = get_user(parsed_dockerfile,args['user'])
     script_array = get_startup_commands(parsed_dockerfile, args, defaults)
-    print script_array
+    print 'Pulling %s...'% image['image']
     pullimage(image['image'],rootdir)
-
-
     os.chroot(rootdir)
     cmdchain = ['su'] + ['-l'] + [user] + ['-c'] + [runscript]
     make_startup_script(runscript, script_array)
