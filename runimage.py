@@ -8,7 +8,7 @@ import subprocess
 
 bin_filename = 'pulldocker'
 dockerhub_url = 'https://registry.hub.docker.com'
-defaults = {'user':'root', 'entrypoint':'/bin/sh -c', 'cmd':'', 'wdir':'/root'}
+defaults = {'user':'root', 'entrypoint':'/bin/sh ', 'cmd':'', 'wdir':'/root'}
 
 
 def get_pulldocker_bin(filename):
@@ -57,7 +57,7 @@ def get_dockerfile_details(user, repo):
         output['MAINTAINER'] = maintainer[0] if maintainer != [] else None
         output['USER'] = duser[0] if duser != [] else 'root'
     except Exception, e:
-        print '(>>>%s)'% e
+        print '(Cannot get Dockerfile >>>%s)'% e
         for key in ('FROM', 'CMD', 'ENV', 'VOL', 'WDIR', 'PORTS', 'ENTRYPOINT', 'MAINTAINER', 'USER'): output[key] = None
     return output
 
@@ -98,6 +98,8 @@ def get_customdockerfile_details(filename):
 def get_startup_commands(parsed, customs, defaults):
     script = []
 
+    script.append('mount -t proc proc /proc;')
+
     exports = get_envs(parsed)
     if len(exports) > 0:
         script.append(get_envs(parsed))
@@ -118,7 +120,8 @@ def get_startup_commands(parsed, customs, defaults):
             if len(parsed['ENTRYPOINT']) > 0:
                 script.append('%s '% parsed['ENTRYPOINT'])
         else:
-            script.append('%s '% defaults['entrypoint'])
+            if customs['cmd'] is None and parsed['CMD'] is None:
+                script.append('%s'% defaults['entrypoint'])
 
     if customs['cmd'] is not None:
         script.append('%s'% customs['cmd'])
@@ -142,7 +145,16 @@ def sanitize_image(raw_image):
         else:
             user, repo = '_', userrepo.rstrip('/').lstrip('/')
         user, repo = re.sub('/','',user), re.sub('/','',repo)
-        image = '%s/%s:%s'% (user, repo, tag) if tag is not None else  '%s/%s'% (user, repo)
+        if user == '_' and tag is not None:
+            image = '%s:%s'% (repo,tag)
+        else:
+            if user == '_' and tag is None:
+                image = '%s'% repo
+            else:
+                if user != '_' and tag is None:
+                    image = '%s/%s'% (user, repo)
+                else:
+                    image = '%s/%s:%s'% (user, repo, tag)
         return {'user':user, 'repo':repo, 'tag':tag, 'image':image}
     except:
         exit('ERROR: Image name format not supported')
@@ -202,7 +214,7 @@ def make_startup_script(runscript, comms):
                 f.write(line)
             f.write('\n')
             f.close()
-        os.chmod(runscript, 755)
+        os.chmod(runscript, 0755)
     except Exception, e:
         exit('ERROR: Cannot write %s script (%s)'% (runscript,e))
 
@@ -226,9 +238,20 @@ if __name__ == "__main__":
     runscript = '/run.sh'
     user = get_user(parsed_dockerfile,args['user'])
     script_array = get_startup_commands(parsed_dockerfile, args, defaults)
-    print 'Pulling %s...'% image['image']
-    pullimage(image['image'],rootdir)
+
+    if os.path.exists(rootdir) is not True:
+        print 'Pulling %s...'% image['image']
+        pullimage(image['image'],rootdir)
+    else:
+        if args['overwrite'] is True:
+            os.rename(rootdir,'%s_BCK'% rootdir)
+            print 'Pulling %s...'% image['image']
+            pullimage(image['image'],rootdir)
+        else:
+            print '%s already exists. Not pulling.'
+
     os.chroot(rootdir)
+    print rootdir
     cmdchain = ['su'] + ['-l'] + [user] + ['-c'] + [runscript]
     make_startup_script(runscript, script_array)
     print cmdchain
