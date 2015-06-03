@@ -2,13 +2,14 @@
 import os
 import re
 import json
+import shutil
 import urllib2
 import argparse
 import subprocess
 
 bin_filename = 'pulldocker'
 dockerhub_url = 'https://registry.hub.docker.com'
-defaults = {'user':'root', 'entrypoint':'/bin/sh ', 'cmd':'', 'wdir':'/root'}
+defaults = {'user':'root', 'entrypoint':'/entrypoint.sh ', 'cmd':'', 'wdir':'/root'}
 
 
 def get_pulldocker_bin(filename):
@@ -97,8 +98,6 @@ def get_customdockerfile_details(filename):
 
 def get_startup_commands(parsed, customs, defaults):
     script = []
-
-    script.append('mount -t proc proc /proc;')
 
     exports = get_envs(parsed)
     if len(exports) > 0:
@@ -218,10 +217,27 @@ def make_startup_script(runscript, comms):
     except Exception, e:
         exit('ERROR: Cannot write %s script (%s)'% (runscript,e))
 
+def write_bashrc(bashrc, string):
+    with open(bashrc, "a") as file:
+        file.write('\n')
+        file.write(string)
+        file.write('\n')
+        file.close()
+
+def mount_binds(rootdir):
+    chrootdir = os.path.join(os.getcwd(),rootdir)
+    subprocess.call(['mount', '-t', 'proc', '%s'% os.path.join(chrootdir,'/proc')])
+    subprocess.call(['mount', '--bind', '/CL', '%s'% os.path.join(chrootdir,'/CL')])
+    subprocess.call(['mount', '--bind', '/dev', '%s'% os.path.join(chrootdir,'/dev')])
+
+def run_in_tab(tab,command):
+    sendmessage_script='/srv/cloudlabs/scripts/send_message.sh SERVERMESSAGE'
+    data_j = json.dumps({'type':'write_to_term', 'id':str(tab), 'data':'%s \n'% command, 'to':'computer'})
+    subprocess.call('%s %s'% (sendmessage_script, data_j), shell=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.description='RUNIMAGE - Run a docker image natively, inside a chroot jail and without Docker'
+    parser.description='RUNIMAGE - Run a docker image inside a Terminal, using a chroot jail and without Docker'
     parser.add_argument('image', type=str, help='Docker image to be dumped')
     parser.add_argument('-u', '--user', type=str, default=None ,help='Run the container with a custom user [%s]'% defaults['user'])
     parser.add_argument('-e', '--entrypoint', type=str, default=None, help='Entrypoint bin/script [%s]'% defaults['entrypoint'])
@@ -232,6 +248,8 @@ if __name__ == "__main__":
     parser.add_argument('-w', '--overwrite', type=bool, default=False, help='DANGER - Overwrite image if it already exists')
     args = vars(parser.parse_args())
 
+
+    # Analyze container information
     image=sanitize_image(args['image'])
     parsed_dockerfile = get_customdockerfile_details(args['dockerfile']) if args['dockerfile'] is not None else get_dockerfile_details(image['user'],image['repo'])
     rootdir = get_rootdir(image, args['rootdir'])
@@ -239,6 +257,7 @@ if __name__ == "__main__":
     user = get_user(parsed_dockerfile,args['user'])
     script_array = get_startup_commands(parsed_dockerfile, args, defaults)
 
+    # Pull image from dockerhub
     if os.path.exists(rootdir) is not True:
         print 'Pulling %s...'% image['image']
         pullimage(image['image'],rootdir)
@@ -250,10 +269,15 @@ if __name__ == "__main__":
         else:
             print '%s already exists. Not pulling.'
 
-    os.chroot(rootdir)
-    print rootdir
-    cmdchain = ['su'] + ['-l'] + [user] + ['-c'] + [runscript]
-    make_startup_script(runscript, script_array)
-    print cmdchain
-    print 'Your application is running in ports: "%s" ' % parsed_dockerfile['PORTS']
-    subprocess.call(cmdchain)
+    # Prepare jail
+    write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
+    shutil.copy2('/etc/resolv.conf', os.path.join(os.getcwd(), rootdir, 'etc/resolv.conf'))
+    mount_binds(rootdir)
+    make_startup_script(os.path.join(os.getcwd(),'/',runscript), script_array)
+
+    # Execute chrooted Jail in a new tab
+    cmdchain = 'su -l %s -c %s'% (user,runscript)
+    run_in_tab(2, cmdchain)
+
+
+
