@@ -2,6 +2,7 @@
 import os
 import re
 import json
+import time
 import errno
 import shutil
 import urllib2
@@ -214,7 +215,6 @@ def mkdir_p(path):
         else:
             raise
 
-
 def make_startup_script(runscript, comms):
     if os.path.exists(runscript):
         print 'Docker startup script ' + runscript + 'already exists - Overwriting'
@@ -237,6 +237,8 @@ def write_bashrc(bashrc, string):
 
 def mount_binds(rootdir):
     chrootdir = os.path.join(os.getcwd(),rootdir)
+    #mkdir_p(os.path.join(chrootdir,'/CL/readonly'))
+    #subprocess.call(['mount', '--bind', '/CL/readonly', '%s'% os.path.join(chrootdir,'/CL/readonly')])
     subprocess.call(['mount', '--bind', '/dev', '%s'% os.path.join(chrootdir,'/dev')])
 
 def run_in_tab(tab,command):
@@ -288,8 +290,8 @@ if __name__ == "__main__":
 
     # Prepare jail
     if prepare is True or args['overwrite'] is True:
-        write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
-        write_bashrc('/root/.bashrc','mount -t proc proc /proc')
+        # write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
+        # write_bashrc('/root/.bashrc','mount -t proc proc /proc')
         shutil.copy2('/etc/resolv.conf', os.path.join(os.getcwd(), rootdir, 'etc/resolv.conf'))
         mount_binds(rootdir)
     make_startup_script(os.path.join(os.getcwd(),'/',runscript), script_array)
@@ -297,4 +299,7 @@ if __name__ == "__main__":
     # Execute chrooted Jail in a new tab
     cmdchain = 'su -l %s -c %s'% (user,runscript)
     run_in_tab(0, 'clear')
+    time.sleep(1)
+    run_in_tab(2, '/usr/sbin/chroot %s'% rootdir)
+    run_in_tab(2, 'mount -t proc proc /proc')
     run_in_tab(2, cmdchain)
