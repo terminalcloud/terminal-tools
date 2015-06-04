@@ -2,6 +2,7 @@
 import os
 import re
 import json
+import errno
 import shutil
 import urllib2
 import argparse
@@ -204,6 +205,16 @@ def get_envs(parsed):
           exports += 'export %s=\"%s\"; ' % (e, val)
     return exports
 
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
+
+
 def make_startup_script(runscript, comms):
     if os.path.exists(runscript):
         print 'Docker startup script ' + runscript + 'already exists - Overwriting'
@@ -226,14 +237,17 @@ def write_bashrc(bashrc, string):
 
 def mount_binds(rootdir):
     chrootdir = os.path.join(os.getcwd(),rootdir)
-    subprocess.call(['mount', '-t', 'proc', '%s'% os.path.join(chrootdir,'/proc')])
-    subprocess.call(['mount', '--bind', '/CL', '%s'% os.path.join(chrootdir,'/CL')])
     subprocess.call(['mount', '--bind', '/dev', '%s'% os.path.join(chrootdir,'/dev')])
 
 def run_in_tab(tab,command):
-    sendmessage_script='/srv/cloudlabs/scripts/send_message.sh SERVERMESSAGE'
-    data_j = json.dumps({'type':'write_to_term', 'id':str(tab), 'data':'%s \n'% command, 'to':'computer'})
-    subprocess.call('%s %s'% (sendmessage_script, data_j), shell=True)
+    sendmessage_script='/srv/cloudlabs/scripts/send_message.sh CLIENTMESSAGE'
+    if tab != 0:
+        data_j = json.dumps({'type':'write_to_term', 'id':str(tab), 'data':'%s \n'% command, 'to':'computer'})
+    else:
+        data_j = json.dumps({'type':'write_to_term', 'data':'%s \n'% command, 'to':'computer'})
+    print sendmessage_script
+    print data_j
+    subprocess.call(['%s \'%s\''% (sendmessage_script, data_j)], shell=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -261,23 +275,26 @@ if __name__ == "__main__":
     if os.path.exists(rootdir) is not True:
         print 'Pulling %s...'% image['image']
         pullimage(image['image'],rootdir)
+        prepare = True
     else:
         if args['overwrite'] is True:
             os.rename(rootdir,'%s_BCK'% rootdir)
             print 'Pulling %s...'% image['image']
             pullimage(image['image'],rootdir)
+            prepare = True
         else:
+            prepare = False
             print '%s already exists. Not pulling.'
 
     # Prepare jail
-    write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
-    shutil.copy2('/etc/resolv.conf', os.path.join(os.getcwd(), rootdir, 'etc/resolv.conf'))
-    mount_binds(rootdir)
+    if prepare is True or args['overwrite'] is True:
+        write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
+        write_bashrc('/root/.bashrc','mount -t proc proc /proc')
+        shutil.copy2('/etc/resolv.conf', os.path.join(os.getcwd(), rootdir, 'etc/resolv.conf'))
+        mount_binds(rootdir)
     make_startup_script(os.path.join(os.getcwd(),'/',runscript), script_array)
 
     # Execute chrooted Jail in a new tab
     cmdchain = 'su -l %s -c %s'% (user,runscript)
+    run_in_tab(0, 'clear')
     run_in_tab(2, cmdchain)
-
-
-
