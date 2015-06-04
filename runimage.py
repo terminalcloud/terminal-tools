@@ -242,14 +242,12 @@ def mount_binds(rootdir):
     subprocess.call(['mount', '--bind', '/dev', '%s'% os.path.join(chrootdir,'/dev')])
 
 def run_in_tab(tab,command):
-    sendmessage_script='/srv/cloudlabs/scripts/send_message.sh CLIENTMESSAGE'
-    if tab != 0:
-        data_j = json.dumps({'type':'write_to_term', 'id':str(tab), 'data':'%s \n'% command, 'to':'computer'})
-    else:
-        data_j = json.dumps({'type':'write_to_term', 'data':'%s \n'% command, 'to':'computer'})
-    print sendmessage_script
-    print data_j
-    subprocess.call(['%s \'%s\''% (sendmessage_script, data_j)], shell=True)
+    sendmessage='/srv/cloudlabs/scripts/send_message.sh CLIENTMESSAGE'
+    data_j = json.dumps({'type':'write_to_term', 'id':str(tab), 'data':'%s \n'% command, 'to':'computer'})
+    data = '%s \'%s\''% (sendmessage, data_j)
+    print str(data)
+    subprocess.Popen([data], shell=True)
+    #os.system(cmd)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -298,8 +296,6 @@ if __name__ == "__main__":
 
     # Execute chrooted Jail in a new tab
     cmdchain = 'su -l %s -c %s'% (user,runscript)
-    run_in_tab(0, 'clear')
-    time.sleep(1)
     run_in_tab(2, '/usr/sbin/chroot %s'% rootdir)
     run_in_tab(2, 'mount -t proc proc /proc')
     run_in_tab(2, cmdchain)
