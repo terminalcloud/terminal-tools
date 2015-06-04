@@ -5,7 +5,9 @@ import json
 import time
 import errno
 import shutil
+import urllib
 import urllib2
+import tarfile
 import argparse
 import subprocess
 
@@ -27,7 +29,8 @@ def get_pulldocker_bin(filename):
                 exit('%s is not a file.'% fullpath)
         else:
             pass
-    exit('%s not found in path')
+    print '%s not found in path, Trying to install it.'% filename
+    install_pulldocker()
 
 def get_dockerfile_details(user, repo):
     raw_dockerfile = '%s/u/%s/%s/dockerfile/raw' % (dockerhub_url,user,repo)
@@ -254,6 +257,20 @@ def run_in_tab(tab,command):
     data = '%s \'%s\''% (sendmessage, data_j)
     subprocess.Popen([data], shell=True)
 
+def install_pulldocker():
+    url = 'https://www.terminal.com/pulldocker.tgz'
+    try:
+        subprocess.call(['wget', '--no-check-certificate', url])
+        tfile = tarfile.open("pulldocker.tgz", 'r:gz')
+        tfile.extractall('.')
+        shutil.copy2('pulldocker','/usr/local/bin/pulldocker')
+        os.chmod('/usr/local/bin/pulldocker',0755)
+        os.remove('pulldocker')
+        os.remove('pulldocker.tgz')
+    except Exception, e:
+        exit('ERROR: Cannot install pulldocker - (%s) \n please install it manually and try again'% e)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.description='RUNIMAGE - Run a docker image inside a Terminal, using a chroot jail and without Docker'
@@ -308,5 +325,5 @@ if __name__ == "__main__":
     time.sleep(1)
     run_in_tab(2, cmdchain)
 
-    # Install permanen Jail :)
+    # Install permanent Jail :)
     #write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
