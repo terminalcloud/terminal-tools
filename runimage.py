@@ -240,14 +240,19 @@ def mount_binds(rootdir):
     chrootdir = os.path.join(os.getcwd(),rootdir)
     #mkdir_p(os.path.join(chrootdir,'/CL/readonly'))
     #subprocess.call(['mount', '--bind', '/CL/readonly', '%s'% os.path.join(chrootdir,'/CL/readonly')])
-    subprocess.call(['mount', '--bind', '/dev', '%s'% os.path.join(chrootdir,'/dev')])
+    subprocess.call(['mount', '--bind', '/dev', '%s'% os.path.join(chrootdir,'dev')])
+    subprocess.call(['mount', '--bind', '/dev/pts', '%s'% os.path.join(chrootdir,'dev/pts')])
+    subprocess.call(['mount', '--bind', '/sys', '%s'% os.path.join(chrootdir,'sys')])
+    subprocess.call(['mount', '--bind', '/dev/pts', '%s'% os.path.join(chrootdir,'dev/pts')])
+    subprocess.call(['mount', '--bind', '/run', '%s'% os.path.join(chrootdir,'run')])
+    subprocess.call(['mount', '--bind', '/run/lock', '%s'% os.path.join(chrootdir,'run/lock')])
+    subprocess.call(['mount', '--bind', '/run/user', '%s'% os.path.join(chrootdir,'run/user')])
 
 def run_in_tab(tab,command):
     sendmessage='/srv/cloudlabs/scripts/send_message.sh CLIENTMESSAGE'
     data_j = json.dumps({'type':'write_to_term', 'id':str(tab), 'data':'%s \n'% command, 'to':'computer'})
     data = '%s \'%s\''% (sendmessage, data_j)
     subprocess.Popen([data], shell=True)
-    #os.system(cmd)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -291,7 +296,7 @@ if __name__ == "__main__":
         # write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
         # write_bashrc('/root/.bashrc','mount -t proc proc /proc')
         shutil.copy2('/etc/resolv.conf', os.path.join(os.getcwd(), rootdir, 'etc/resolv.conf'))
-        # mount_binds(rootdir)
+        mount_binds(rootdir)
     make_startup_script('%s/%s/%s'% (os.getcwd(),rootdir,runscript), script_array)
 
     print 'Executing chrooted Jail in a new tab...'
