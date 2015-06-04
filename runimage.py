@@ -216,15 +216,16 @@ def mkdir_p(path):
             raise
 
 def make_startup_script(runscript, comms):
+    print runscript
     if os.path.exists(runscript):
-        print 'Docker startup script ' + runscript + 'already exists - Overwriting'
+        print 'Docker startup script ' + runscript + ' already exists - Overwriting'
     try:
         with open(runscript, 'w') as f:
             for line in comms:
+                print line
                 f.write(line)
-            f.write('\n')
-            f.close()
         os.chmod(runscript, 0755)
+        print runscript
     except Exception, e:
         exit('ERROR: Cannot write %s script (%s)'% (runscript,e))
 
@@ -245,7 +246,6 @@ def run_in_tab(tab,command):
     sendmessage='/srv/cloudlabs/scripts/send_message.sh CLIENTMESSAGE'
     data_j = json.dumps({'type':'write_to_term', 'id':str(tab), 'data':'%s \n'% command, 'to':'computer'})
     data = '%s \'%s\''% (sendmessage, data_j)
-    print str(data)
     subprocess.Popen([data], shell=True)
     #os.system(cmd)
 
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
 
 
-    # Analyze container information
+    print 'Analyzing container information...'
     image=sanitize_image(args['image'])
     parsed_dockerfile = get_customdockerfile_details(args['dockerfile']) if args['dockerfile'] is not None else get_dockerfile_details(image['user'],image['repo'])
     rootdir = get_rootdir(image, args['rootdir'])
@@ -271,7 +271,7 @@ if __name__ == "__main__":
     user = get_user(parsed_dockerfile,args['user'])
     script_array = get_startup_commands(parsed_dockerfile, args, defaults)
 
-    # Pull image from dockerhub
+    print'Pulling image from dockerhub...'
     if os.path.exists(rootdir) is not True:
         print 'Pulling %s...'% image['image']
         pullimage(image['image'],rootdir)
@@ -286,16 +286,22 @@ if __name__ == "__main__":
             prepare = False
             print '%s already exists. Not pulling.'
 
-    # Prepare jail
+    print 'Preparing jail...'
     if prepare is True or args['overwrite'] is True:
         # write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
         # write_bashrc('/root/.bashrc','mount -t proc proc /proc')
         shutil.copy2('/etc/resolv.conf', os.path.join(os.getcwd(), rootdir, 'etc/resolv.conf'))
-        mount_binds(rootdir)
-    make_startup_script(os.path.join(os.getcwd(),'/',runscript), script_array)
+        # mount_binds(rootdir)
+    make_startup_script('%s/%s/%s'% (os.getcwd(),rootdir,runscript), script_array)
 
-    # Execute chrooted Jail in a new tab
+    print 'Executing chrooted Jail in a new tab...'
+    time.sleep(3)
     cmdchain = 'su -l %s -c %s'% (user,runscript)
     run_in_tab(2, '/usr/sbin/chroot %s'% rootdir)
+    time.sleep(1)
     run_in_tab(2, 'mount -t proc proc /proc')
+    time.sleep(1)
     run_in_tab(2, cmdchain)
+
+    # Install permanen Jail :)
+    #write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
