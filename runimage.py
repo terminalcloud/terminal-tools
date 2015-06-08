@@ -102,7 +102,7 @@ def get_customdockerfile_details(filename):
         for key in ('FROM', 'CMD', 'ENV', 'VOL', 'WDIR', 'PORTS', 'ENTRYPOINT', 'MAINTAINER', 'USER'): output[key] = None
     return output
 
-def get_startup_commands(parsed, customs, defaults):
+def get_startup_commands(parsed, customs, defaults, rootdir):
     script = []
 
     exports = get_envs(parsed)
@@ -126,7 +126,8 @@ def get_startup_commands(parsed, customs, defaults):
                 script.append('%s '% parsed['ENTRYPOINT'])
         else:
             if customs['cmd'] is None and parsed['CMD'] is None:
-                script.append('%s'% defaults['entrypoint'])
+                if os.path.isfile(os.path.join(rootdir,'entrypoint.sh')):
+                    script.append('%s'% defaults['entrypoint'])
 
     if customs['cmd'] is not None:
         script.append('%s'% customs['cmd'])
@@ -291,7 +292,7 @@ if __name__ == "__main__":
     rootdir = get_rootdir(image, args['rootdir'])
     runscript = '/run.sh'
     user = get_user(parsed_dockerfile,args['user'])
-    script_array = get_startup_commands(parsed_dockerfile, args, defaults)
+    script_array = get_startup_commands(parsed_dockerfile, args, defaults,rootdir)
 
     print'Pulling image from dockerhub...'
     if os.path.exists(rootdir) is not True:
