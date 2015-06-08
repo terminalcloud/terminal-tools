@@ -281,6 +281,7 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--wdir', type=str, default=None, help='Custom internal work dir')
     parser.add_argument('-f', '--dockerfile', type=str, default=None, help='Custom dockerfile')
     parser.add_argument('-w', '--overwrite', type=bool, default=False, help='DANGER - Overwrite image if it already exists')
+    parser.add_argument('-t', '--tab', type=int, default=2, help='Terminal tab where the image will be mounted and executed')
     args = vars(parser.parse_args())
 
 
@@ -305,7 +306,7 @@ if __name__ == "__main__":
             prepare = True
         else:
             prepare = False
-            print '%s already exists. Not pulling.'
+            print '%s already exists. Not pulling.'%rootdir
 
     print 'Preparing jail...'
     if prepare is True or args['overwrite'] is True:
@@ -316,13 +317,13 @@ if __name__ == "__main__":
     make_startup_script('%s/%s/%s'% (os.getcwd(),rootdir,runscript), script_array)
 
     print 'Executing chrooted Jail in a new tab...'
-    time.sleep(3)
+    time.sleep(1)
     cmdchain = 'su -l %s -c %s'% (user,runscript)
-    run_in_tab(2, '/usr/sbin/chroot %s'% rootdir)
+    run_in_tab(args['tab'], '/usr/sbin/chroot %s'% rootdir)
+    time.sleep(args['tab'])
+    run_in_tab(args['tab'], 'mount -t proc proc /proc')
     time.sleep(1)
-    run_in_tab(2, 'mount -t proc proc /proc')
-    time.sleep(1)
-    run_in_tab(2, cmdchain)
+    run_in_tab(['tab'], cmdchain)
 
     # Install permanent Jail :)
     #write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
