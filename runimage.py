@@ -318,7 +318,7 @@ if __name__ == "__main__":
     make_startup_script('%s/%s/%s'% (os.getcwd(),rootdir,runscript), script_array)
 
     print 'Executing chrooted Jail in a new tab...'
-    time.sleep(args['tab'])
+    time.sleep(1)
     cmdchain = 'su -l %s -c %s'% (user,runscript)
     run_in_tab(args['tab'], '/usr/sbin/chroot %s'% rootdir)
     time.sleep(2)
