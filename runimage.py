@@ -324,7 +324,7 @@ if __name__ == "__main__":
     time.sleep(args['tab'])
     run_in_tab(args['tab'], 'mount -t proc proc /proc')
     time.sleep(1)
-    run_in_tab(['tab'], cmdchain)
+    run_in_tab(args['tab'], cmdchain)
 
     # Install permanent Jail :)
     #write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
