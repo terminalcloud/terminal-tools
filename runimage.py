@@ -31,6 +31,7 @@ def get_pulldocker_bin(filename):
             pass
     print '%s not found in path, Trying to install it.'% filename
     install_pulldocker()
+    return '/usr/local/bin/pulldocker'
 
 def get_dockerfile_details(user, repo):
     raw_dockerfile = '%s/u/%s/%s/dockerfile/raw' % (dockerhub_url,user,repo)
@@ -225,10 +226,8 @@ def make_startup_script(runscript, comms):
     try:
         with open(runscript, 'w') as f:
             for line in comms:
-                print line
                 f.write(line)
         os.chmod(runscript, 0755)
-        print runscript
     except Exception, e:
         exit('ERROR: Cannot write %s script (%s)'% (runscript,e))
 
