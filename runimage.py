@@ -283,6 +283,7 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--dockerfile', type=str, default=None, help='Custom dockerfile')
     parser.add_argument('-w', '--overwrite', type=bool, default=False, help='DANGER - Overwrite image if it already exists')
     parser.add_argument('-t', '--tab', type=int, default=2, help='Terminal tab where the image will be mounted and executed')
+    parser.add_argument('-n', '--nomounts', type=bool, default=False, help='Do NOT mount any additional FS. [FALSE]')
     args = vars(parser.parse_args())
 
 
@@ -314,6 +315,7 @@ if __name__ == "__main__":
         # write_bashrc('/root/.bashrc','/usr/sbin/chroot %s'% rootdir)
         # write_bashrc('/root/.bashrc','mount -t proc proc /proc')
         shutil.copy2('/etc/resolv.conf', os.path.join(os.getcwd(), rootdir, 'etc/resolv.conf'))
+    if args['nomounts'] is False:
         mount_binds(rootdir)
     make_startup_script('%s/%s/%s'% (os.getcwd(),rootdir,runscript), script_array)
 
@@ -322,8 +324,9 @@ if __name__ == "__main__":
     cmdchain = 'su -l %s -c %s'% (user,runscript)
     run_in_tab(args['tab'], '/usr/sbin/chroot %s'% rootdir)
     time.sleep(2)
-    run_in_tab(args['tab'], 'mount -t proc proc /proc')
-    time.sleep(1)
+    if args['nomounts'] is False:
+        run_in_tab(args['tab'], 'mount -t proc proc /proc')
+        time.sleep(1)
     run_in_tab(args['tab'], cmdchain)
 
     # Install permanent Jail :)
