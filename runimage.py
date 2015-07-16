@@ -102,12 +102,15 @@ def get_customdockerfile_details(filename):
         for key in ('FROM', 'CMD', 'ENV', 'VOL', 'WDIR', 'PORTS', 'ENTRYPOINT', 'MAINTAINER', 'USER'): output[key] = None
     return output
 
-def get_startup_commands(parsed, customs, defaults, rootdir):
+def get_startup_commands(parsed, customs, defaults, rootdir, custom_exports):
     script = []
 
     exports = get_envs(parsed)
     if len(exports) > 0:
         script.append(get_envs(parsed))
+
+    if custom_exports is not None:
+        script.append(get_custom_envs(custom_exports))
 
     if customs['wdir'] is not None:
         script.append('cd %s ;'% customs['wdir'])
@@ -211,6 +214,14 @@ def get_envs(parsed):
           exports += 'export %s=\"%s\"; ' % (e, val)
     return exports
 
+def get_custom_envs(custom_exports):
+    exports = ''
+    envs = custom_exports.split(',')
+    for env in range(len(envs)):
+        e,val =  envs[env].split('=')
+        exports = exports + 'export %s=\"%s\"; '% (e, val)
+    return exports
+
 def mkdir_p(path):
     try:
         os.makedirs(path)
@@ -284,6 +295,8 @@ if __name__ == "__main__":
     parser.add_argument('-w', '--overwrite', type=bool, default=False, help='DANGER - Overwrite image if it already exists')
     parser.add_argument('-t', '--tab', type=int, default=2, help='Terminal tab where the image will be mounted and executed')
     parser.add_argument('-n', '--nomounts', type=bool, default=False, help='Do NOT mount any additional FS. [FALSE]')
+    parser.add_argument('-x', '--custom_exports', type=str, default=None, help='List of additional exported variable values /var=value/ comma separated.')
+
     args = vars(parser.parse_args())
 
 
@@ -293,7 +306,7 @@ if __name__ == "__main__":
     rootdir = get_rootdir(image, args['rootdir'])
     runscript = '/run.sh'
     user = get_user(parsed_dockerfile,args['user'])
-    script_array = get_startup_commands(parsed_dockerfile, args, defaults,rootdir)
+    script_array = get_startup_commands(parsed_dockerfile, args, defaults, rootdir, args['custom_exports'])
 
     print'Pulling image from dockerhub...'
     if os.path.exists(rootdir) is not True:
