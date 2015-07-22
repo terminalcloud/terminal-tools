@@ -48,7 +48,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("action", type=str, help="link, unlink, clean, show")
     parser.add_argument("terminal", type=str, help="Terminal to be modified")
-    parser.add_argument("-s", "--source", type=str, default=None, help="Source Terminal. By default '*'.")
+    parser.add_argument("-s", "--source", type=str, default=None, help="Source Terminal. (subdomain)")
     parser.add_argument("-p", "--ports", type=str, default='*', help="Ports, separated by comma. By default '*' (all ports)")
     parser.add_argument('-u', '--utoken', type=str, help="Your user token (see https://www.terminal.com/settings/api)")
     parser.add_argument('-a', '--atoken', type=str, help="Your access token (see https://www.terminal.com/settings/api)")
