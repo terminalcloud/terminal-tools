@@ -79,7 +79,6 @@ env stderr="daemon.err"
 
 pre-start script
 [ -x "\$daemon" ] || exit 0
-[ -x "\$command" ] || exit 0
 end script
 
 exec "\$daemon"  "\$daemon_start_args" --name "\$name" --pidfiles "\$pidfiles" \
@@ -126,7 +125,6 @@ command_args="$command_args"
 daemon="$daemon"
 
 [ -x "\$daemon" ] || exit 0
-[ -x "\$command" ] || exit 0
 
 # This can be customized as needed
 daemon_start_args="--respawn"
@@ -216,7 +214,7 @@ chkconfig_install(){
 
 ##### Main #####
 
-[[ "$#" -gt 1 ]] || { echo "Usage: $0 service_name command 'command_parameters'"; exit 0 ; }
+[[ "$#" -gt 2 ]] || { echo "Usage: $0 service_name command 'command_parameters'"; exit 0 ; }
 
 name=$1
 command=$(get_full_path $2)
