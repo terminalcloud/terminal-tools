@@ -220,6 +220,11 @@ name=$1
 command=$(get_full_path $2)
 command_args=$3
 
+
+# Check file permissions
+[[ -e "$command" ]] || { echo "$command does not exist"; echo "Usage: $0 service_name command 'command_parameters'"; exit 1 ; }
+[[ -x "$command" ]] || chmod +x "$command"
+
 # Install 'Daemon' if needed
 which daemon > /dev/null && echo "Daemon already installed" || install_daemon $(get_osflavor)
 
