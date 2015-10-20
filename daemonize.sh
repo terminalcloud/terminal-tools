@@ -26,7 +26,7 @@ get_full_path(){
 
 
 get_osflavor(){
-    if [[ -f "/etc/lsb_release" ]]
+    if [[ -f "/etc/lsb-release" ]]
         then
             echo "ubuntu"
         elif [[ -f "/etc/redhat-release" ]]
@@ -214,7 +214,7 @@ chkconfig_install(){
 
 ##### Main #####
 
-[[ "$#" -gt 2 ]] || { echo "Usage: $0 service_name command 'command_parameters'"; exit 0 ; }
+[[ "$#" -gt 1 ]] || { echo "Usage: $0 service_name command 'command_parameters'"; exit 0 ; }
 
 name=$1
 command=$(get_full_path $2)
