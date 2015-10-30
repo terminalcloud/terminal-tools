@@ -16,8 +16,8 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-#TOOLS_PATH='/CL/readonly/cloudlabs/latest'
-TOOLS_PATH='/TEST/readonly/cloudlabs/latest'
+TOOLS_PATH='/CL/readonly/cloudlabs/latest'
+#TOOLS_PATH='/TEST/readonly/cloudlabs/latest'
 DAEMON_BIN="$TOOLS_PATH/daemon"
 CHKCONFIG_BIN="$TOOLS_PATH/chkconfig"
 UPSTART_CONF="$TOOLS_PATH/terminal-server.conf"
