@@ -127,7 +127,7 @@ comment_rc.local(){
 remove_cloudlabside(){
     if [[ -x /etc/init.d/cloudlabside ]]
         then
-            rm /etc/init/d/cloudlabside
+            rm /etc/init.d/cloudlabside
     fi
 }
 
