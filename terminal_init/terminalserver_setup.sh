@@ -150,4 +150,5 @@ if [[ "$flavor" == "ubuntu" ]]
 fi
 
 # Comment out the old initialization mode and remove old init scripts
-[[ $? -eq 0 ]] && comment_rc.local && remove_cloudlabside
+comment_rc.local
+remove_cloudlabside

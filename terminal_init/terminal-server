@@ -35,10 +35,10 @@ case "$1" in
             echo "$name is already running."
         else
             echo -n "Starting $name..."
-	/srv/cloudlabs/container_scripts/container_setup.sh
-        pkill -f "/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf" || true
+	pkill -f "/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf" || true
 	rm /CL/nginx.sock || true
-	/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf    
+	/srv/cloudlabs/container_scripts/container_setup.sh
+	/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf
 	"$daemon" $daemon_start_args --name "$name" --pidfiles "$pidfiles" ${user:+--user $user} ${chroot:+--chroot $chroot}                 ${chdir:+--chdir $chdir} ${umask:+--umask $umask} ${stdout:+--stdout $stdout} ${stderr:+--stderr $stderr} -- "$command" $command_args
             echo done.
         fi
