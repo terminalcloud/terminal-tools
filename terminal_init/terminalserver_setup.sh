@@ -125,9 +125,9 @@ comment_rc.local(){
 }
 
 remove_cloudlabside(){
-    if [[ -x /etc/cloudlabside ]]
+    if [[ -x /etc/init.d/cloudlabside ]]
         then
-            rm /etc/cloudlabside
+            rm /etc/init/d/cloudlabside
     fi
 }
 
@@ -150,5 +150,4 @@ if [[ "$flavor" == "ubuntu" ]]
 fi
 
 # Comment out the old initialization mode and remove old init scripts
-comment_rc.local
-remove_cloudlabside
+[[ $? -eq 0 ]] && comment_rc.local && remove_cloudlabside
