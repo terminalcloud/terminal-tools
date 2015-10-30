@@ -35,12 +35,10 @@ case "$1" in
             echo "$name is already running."
         else
             echo -n "Starting $name..."
-	pkill -f "/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf" || true
-	pkill -f 'Terminal server' || true
-	rm /CL/nginx.sock || true
-	/srv/cloudlabs/container_scripts/container_setup.sh
-	/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf
-	"$daemon" $daemon_start_args --name "$name" --pidfiles "$pidfiles" ${user:+--user $user} ${chroot:+--chroot $chroot}                 ${chdir:+--chdir $chdir} ${umask:+--umask $umask} ${stdout:+--stdout $stdout} ${stderr:+--stderr $stderr} -- "$command" $command_args
+            pgrep -f '/CL/ptyserved' || /srv/cloudlabs/container_scripts/container_setup.sh
+            pgrep -f "/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf" || /usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf
+            pkill -f 'Terminal server' || true
+            "$daemon" $daemon_start_args --name "$name" --pidfiles "$pidfiles" ${user:+--user $user} ${chroot:+--chroot $chroot}                 ${chdir:+--chdir $chdir} ${umask:+--umask $umask} ${stdout:+--stdout $stdout} ${stderr:+--stderr $stderr} -- "$command" $command_args
             echo done.
         fi
         ;;
