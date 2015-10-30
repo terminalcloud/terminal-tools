@@ -1,0 +1,79 @@
+#!/bin/sh
+#
+### BEGIN INIT INFO
+# Provides:          terminal-server
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Should-Start:
+# Should-Stop:
+# Short-Description: Daemonized terminal-server service.
+### END INIT INFO
+# chkconfig: 2345 90 60
+name="terminal-server"
+command="/CL/readonly/cloudlabs/latest/node"
+command_args="/srv/cloudlabs/compute/compute_server"
+daemon="/usr/local/bin/daemon"
+
+[ -x "$daemon" ] || exit 0
+
+# This can be customized as needed
+daemon_start_args="--respawn"
+pidfiles="/var/run"
+user=""
+chroot=""
+chdir=""
+umask=""
+stdout="/var/log/terminal-server.log"
+stderr="/var/log/terminal-server.err"
+
+case "$1" in
+    start)
+        if "$daemon" --running --name "$name" --pidfiles "$pidfiles"
+        then
+            echo "$name is already running."
+        else
+            echo -n "Starting $name..."
+	/srv/cloudlabs/container_scripts/container_setup.sh
+        pkill -f "/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf" || true
+	rm /CL/nginx.sock || true
+	/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf    
+	"$daemon" $daemon_start_args --name "$name" --pidfiles "$pidfiles" ${user:+--user $user} ${chroot:+--chroot $chroot}                 ${chdir:+--chdir $chdir} ${umask:+--umask $umask} ${stdout:+--stdout $stdout} ${stderr:+--stderr $stderr} -- "$command" $command_args
+            echo done.
+        fi
+        ;;
+
+    stop)
+        if "$daemon" --running --name "$name" --pidfiles "$pidfiles"
+        then
+            echo -n "Stopping $name..."
+            "$daemon" --stop --name "$name" --pidfiles "$pidfiles"
+            echo done.
+        else
+            echo "$name is not running."
+        fi
+        ;;
+
+    restart|reload)
+        if "$daemon" --running --name "$name" --pidfiles "$pidfiles"
+        then
+            echo -n "Restarting $name..."
+            "$daemon" --restart --name "$name" --pidfiles "$pidfiles"
+            echo done.
+        else
+            echo "$name is not running."
+            exit 1
+        fi
+        ;;
+
+    status)
+        "$daemon" --running --name "$name" --pidfiles "$pidfiles" --verbose
+        ;;
+
+    *)
+        echo "usage: $0 <start|stop|restart|reload|status>" >&2
+        exit 1
+esac
+
+exit 0
