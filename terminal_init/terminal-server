@@ -36,6 +36,7 @@ case "$1" in
         else
             echo -n "Starting $name..."
 	pkill -f "/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf" || true
+	pkill -f 'Terminal server' || true
 	rm /CL/nginx.sock || true
 	/srv/cloudlabs/container_scripts/container_setup.sh
 	/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf
