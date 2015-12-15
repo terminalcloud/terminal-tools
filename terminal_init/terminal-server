@@ -36,7 +36,7 @@ case "$1" in
         else
             echo -n "Starting $name..."
             pgrep -f '/CL/ptyserved' || /CL/ptyserved
-            pgrep -f '/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf' || /usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf
+            pgrep -f '/usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf' || ( rm /CL/nginx.sock || true; /usr/local/openresty/nginx/sbin/nginx -c /srv/cloudlabs/nginx.conf )
             pkill -f 'Terminal server' || true
             "$daemon" $daemon_start_args --name "$name" --pidfiles "$pidfiles" ${user:+--user $user} ${chroot:+--chroot $chroot}                 ${chdir:+--chdir $chdir} ${umask:+--umask $umask} ${stdout:+--stdout $stdout} ${stderr:+--stderr $stderr} -- "$command" $command_args
             echo done.
