@@ -22,6 +22,7 @@ CHKCONFIG_BIN="$TOOLS_PATH/chkconfig"
 UPSTART_CONF="$TOOLS_PATH/terminal-server.conf"
 SYSV_INIT_FILE="$TOOLS_PATH/terminal-server"
 
+. /srv/cloudlabs/container_scripts/vars.sh
 
 get_osflavor(){
     if [[ -f "/etc/lsb-release" ]]
@@ -131,6 +132,39 @@ remove_cloudlabside(){
 }
 
 
+prepare_container(){
+    mkdir -p /uploads
+    mkdir -p /local
+    mkfifo /local/node.fifo
+    chmod o+wr /local/node.fifo
+    mkfifo /local/from_node.fifo
+    chmod o+r /local/from_node.fifo
+    rm -rf /local/*.json
+    rm -rf /local/history.*
+    rm -rf /tmp/*
+    rm -f /local/diary.fifo
+    rm -f /local/diary.txt
+    ln -s /dev/null /local/diary.fifo
+    rm -rf /var/log/cloudlabs
+    mkdir -p /var/log/cloudlabs
+    mkdir -p /var/log/nginx
+    rm -rf /etc/logrotate.d/cloudlabs
+    ln -s $SRV/logrotate.conf /etc/logrotate.d/cloudlabs
+    cp /CL/readonly/cloudlabs/latest/ttyjs/node_modules/pty.js/src/unix/ptyserved /CL/ptyserved
+
+    if [[ -e /root/.octaverc ]]
+    then
+        rm -f /root/.octaverc
+        ln -s $SRV/compute/octaverc /root/.octaverc
+    fi
+
+    if [[ ! -e /home/.bashrc ]];
+    then
+        ln -s $SRV/bashrc /home/.bashrc
+    fi
+
+}
+
 
 ### Main Process ##
 
@@ -139,6 +173,7 @@ flavor=$(get_osflavor)
 
 # Install pre-requisites if needed
 get_requisites "$flavor"
+prepare_container
 
 # Install init/upstart scripts
 if [[ "$flavor" == "ubuntu" ]]
@@ -149,5 +184,5 @@ if [[ "$flavor" == "ubuntu" ]]
 fi
 
 # Comment out the old initialization mode and remove old init scripts
-[[ $? -eq 0 ]] && comment_rc.local && remove_cloudlabside
+[[ $? -eq 0 ]] && ( comment_rc.local ; remove_cloudlabside )
 service terminal-server start
